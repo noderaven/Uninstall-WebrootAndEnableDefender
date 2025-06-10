@@ -2,11 +2,11 @@
 
 This PowerShell script automates the complete uninstallation of Webroot SecureAnywhere, performs a thorough cleanup of leftover files and registry entries, and then ensures Microsoft Defender Antivirus is enabled and running.
 
-## 📄 Description
+## Description
 
 This script is designed for robust and reliable unattended execution, combining a staged approach with a forceful, deep-cleaning mechanism to remove Webroot and activate Defender. It's particularly useful for system administrators or users needing to completely remove Webroot and switch to the native Windows security solution.
 
-## ✨ Features
+## Features
 
 * **Execution Policy Bypass:** Temporarily sets the PowerShell execution policy for the current process to allow script execution.
 
@@ -34,7 +34,7 @@ This script is designed for robust and reliable unattended execution, combining 
 
 * **Retry Mechanism:** Includes a retry mechanism for folder deletion, making the cleanup more resilient.
 
-## 🚀 Usage
+## Usage
 
 To run this script:
 
