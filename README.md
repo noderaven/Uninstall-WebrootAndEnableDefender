@@ -1,6 +1,5 @@
 # Uninstall-WebrootAndEnableDefender
 
-<#
 .SYNOPSIS
     This script automates the uninstallation of Webroot SecureAnywhere, performs a thorough cleanup, and enables Microsoft Defender Antivirus.
 
@@ -18,4 +17,3 @@
 .EXAMPLE
     .\Uninstall-WebrootAndEnableDefender.ps1
     Run from an elevated PowerShell terminal. A reboot is recommended to finalize cleanup.
-#>
