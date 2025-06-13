@@ -1,26 +1,4 @@
 <#
-MIT License
-
-Copyright (c) 2025 noderaven
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-
 .SYNOPSIS
     This script automates the uninstallation of Webroot SecureAnywhere, performs a thorough cleanup, and enables Microsoft Defender Antivirus.
 
@@ -62,7 +40,8 @@ function Write-Log {
     )
     $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
     $logMessage = "$timestamp [$Level] $Message"
-    Write-Output $logMessage
+    
+    Write-Host $logMessage 
 }
 
 function Stop-WebrootProcesses {
@@ -165,41 +144,55 @@ function Start-ServiceWithCheck {
 }
 
 function Remove-FolderWithRetry {
-    param ([string[]]$Folders, [int]$MaxRetries = 5, [int]$RetryDelaySeconds = 60)
-    
+    param(
+        [string[]]$Folders,
+        [int]$MaxRetries = 5,
+        [int]$RetryDelaySeconds = 60
+    )
+
     $expandedFolders = $Folders | ForEach-Object { [System.Environment]::ExpandEnvironmentVariables($_) }
 
     for ($attempt = 1; $attempt -le $MaxRetries; $attempt++) {
-        Write-Log "Folder deletion attempt $attempt of $MaxRetries..."
-        
-        foreach ($folder in $expandedFolders) {
-            if (Test-Path $folder) {
-                try {
-                    Remove-Item -Path $folder -Recurse -Force -ErrorAction Stop
-                    Write-Log "Successfully deleted folder: $folder"
-                } catch {
-                    Write-Log "Error deleting '$folder': $_" "ERROR"
-                }
-            } elseif ($attempt -eq 1) {
-                Write-Log "Folder not found on initial check, skipping: $folder"
+        $foldersThatExist = $expandedFolders | Where-Object { Test-Path $_ }
+
+        if ($foldersThatExist.Count -eq 0) {
+            if ($attempt -eq 1) {
+                Write-Log "Cleanup check complete. No Webroot folders were found."
+            } else {
+                Write-Log "All targeted folders were successfully removed."
             }
-        }
-        
-        $remainingFolders = $expandedFolders | Where-Object { Test-Path $_ }
-        if ($remainingFolders.Count -eq 0) {
-            Write-Log "All specified Webroot folders have been successfully removed."
-            return $true # Success
+            return $true
         }
 
-        Write-Log "The following folders remain: $($remainingFolders -join ', ')" "WARNING"
+        Write-Log "Attempt ${attempt}/${MaxRetries}: Found folders to delete: $($foldersThatExist -join ', ')"
+
+        foreach ($folder in $foldersThatExist) {
+            try {
+                Remove-Item -Path $folder -Recurse -Force -ErrorAction Stop
+                Write-Log "Successfully deleted: $folder"
+            } catch {
+                Write-Log "Error deleting '$folder': $_" "ERROR"
+            }
+        }
+
+        $remainingFolders = $expandedFolders | Where-Object { Test-Path $_ }
+        if ($remainingFolders.Count -eq 0) {
+            Write-Log "All targeted folders were successfully removed."
+            return $true
+        }
+
+        Write-Log "Folders still remaining after attempt ${attempt}: $($remainingFolders -join ', ')" "WARNING"
+
         if ($attempt -lt $MaxRetries) {
-            Write-Log "Retrying in $RetryDelaySeconds seconds..."; Start-Sleep -Seconds $RetryDelaySeconds
-        } else {
-            Write-Log "Failed to delete all folders after $MaxRetries attempts." "ERROR"
+            Write-Log "Retrying in $RetryDelaySeconds seconds..."
+            Start-Sleep -Seconds $RetryDelaySeconds
         }
     }
-    return $false # Failure
+
+    Write-Log "Failed to delete all folders after $MaxRetries attempts." "ERROR"
+    return $false
 }
+
 
 #endregion Helper Functions
 
